@@ -79,28 +79,6 @@ int main()
 	// load models
 	// -----------
 	Model ourModel(FileSystem::getPath("house/WoodenCabinObj.obj"),true);
-
-	unsigned int depthMapFBO;
-	glGenFramebuffers(1, &depthMapFBO);
-
-	const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-
-	unsigned int depthMap;
-	glGenTextures(1, &depthMap);
-	glBindTexture(GL_TEXTURE_2D, depthMap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glm::vec3 lightPos(10.5f, 1.0f, 0.3f);
@@ -139,7 +117,7 @@ int main()
 		ourShader.setMat4("model", model);
 		ourShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
 		ourShader.setVec3("viewPos", camera.Position);
-		ourShader.setVec3("lightPos", camera.Position);
+		ourShader.setVec3("lightPos", lightPos);
 		//ourShader.setVec3("lightPos", lightPos);
 
 		// light properties
