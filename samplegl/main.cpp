@@ -1,7 +1,9 @@
 ﻿#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <AL/alut.h>
 //#include <ft2build.h>
-//#include FT_FREETYPE_H  
+//#include FT_FREETYPE_H 
+#define GLM_FORCE_AVX
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -34,6 +36,38 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+ALCdevice *Device;
+ALCcontext *Context;
+ALuint buffer;
+ALuint source;
+ALCenum error;
+
+static void list_audio_devices(const ALCchar *devices)
+{
+	const ALCchar *device = devices, *next = devices + 1;
+	size_t len = 0;
+
+	fprintf(stdout, "Devices list:\n");
+	fprintf(stdout, "----------\n");
+	while (device && *device != '\0' && next && *next != '\0') {
+		fprintf(stdout, "%s\n", device);
+		len = strlen(device);
+		device += (len + 1);
+		next += (len + 2);
+	}
+	fprintf(stdout, "----------\n");
+}
+void alErrorChk(const char * step) {
+	error = alGetError();
+	if (error != AL_NO_ERROR)
+	{
+		cout << step << " " << error << endl;
+	}
+}
+
+using namespace std;
+using namespace glm;
+
 int main()
 {
 	// glfw: initialize and configure
@@ -42,7 +76,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+	//list_audio_devices(alcGetString(NULL, ALC_DEVICE_SPECIFIER));
 	// glfw window creation
 	// --------------------
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
@@ -52,6 +86,68 @@ int main()
 		glfwTerminate();
 		return -1;
 	}
+	// Initialization
+
+	Context = alcCreateContext(Device, NULL);
+	if (!alcMakeContextCurrent(Context))
+		cout << "context error" << alGetError() << endl;
+	Device = alcOpenDevice(NULL); // select the "preferred device"
+
+	if (Device) {
+		Context = alcCreateContext(Device, NULL);
+		alcMakeContextCurrent(Context);
+	}
+	else {
+		cout << "OpenAL init error." << endl;
+	}
+	
+
+
+
+	alGenBuffers((ALuint)1, &buffer);
+	// check for errors
+
+	ALsizei size, freq;
+	ALenum format;
+	ALvoid *data;
+	ALboolean loop = AL_FALSE;
+	ALbyte * filename = (ALbyte*)("jurassicpark1.wav");
+	//buffer = alutCreateBufferFromFile("jurassicpark1.wav");
+	alutLoadWAVFile(filename, &format, &data, &size, &freq, &loop);
+	alBufferData(buffer, format, data, size, freq);
+	ALfloat listenerOri[] = { camera.Position.b, camera.Position.g, camera.Position.p, camera.Position.r, camera.Position.s, camera.Position.t };
+
+	alListener3f(AL_POSITION, 0, 0, 1.0f);
+	// check for errors
+	alListener3f(AL_VELOCITY, 0, 0, 0);
+	// check for errors
+	alListenerfv(AL_ORIENTATION, listenerOri);
+	// check for errors
+
+
+
+	alGenSources((ALuint)1, &source);
+	// check for errors
+
+	alSourcef(source, AL_PITCH, 1);
+	// check for errors
+	alSourcef(source, AL_GAIN, 1);
+	// check for errors
+	alSource3f(source, AL_POSITION, 0, 0, 0);
+	// check for errors
+	alSource3f(source, AL_VELOCITY, 0, 0, 0);
+	// check for errors
+	alSourcei(source, AL_LOOPING, AL_TRUE);
+	// check for errros
+
+	//alutLoadWAVFile(&filename, &format, &data, &size, &freq, &loop);
+	alErrorChk("LoadWavFile");
+	//alBufferData(buffer, format, data, size, freq);
+	//alErrorChk("bufferData");
+	// check for errors
+	alSourcei(source, AL_BUFFER, buffer);
+	alErrorChk("Sourcei");
+	// check for errors
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -78,10 +174,16 @@ int main()
 
 	// load models
 	// -----------
-	Model ourModel(FileSystem::getPath("house/WoodenCabinObj.obj"),true);
+	Model ourModel(FileSystem::getPath("house/WoodenCabinObj.obj"));
+	//Model * Scene = new Model[]; 
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glm::vec3 lightPos(10.5f, 1.0f, 0.3f);
+	glm::vec3 lightPos(10.5f, 1.0f, 100.3f);
+
+	alSourcePlay(source);
+	// check for errors
+	error = alGetError();
+	alErrorChk("SourcePlay");
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
@@ -109,7 +211,15 @@ int main()
 		glm::mat4 view = camera.GetViewMatrix();
 		ourShader.setMat4("projection", projection);
 		ourShader.setMat4("view", view);
-
+		ALfloat Ori[] = { camera.Position.b, camera.Position.g, camera.Position.p, camera.Position.r, camera.Position.s, camera.Position.t };
+		for (unsigned short int i(0); i < 6; i++)
+			listenerOri[i] = Ori[i];
+		alListener3f(AL_POSITION, camera.Position.x, camera.Position.y, camera.Position.z);
+		// check for errors
+		alListener3f(AL_VELOCITY, 0, 0, 0);
+		// check for errors
+		alListenerfv(AL_ORIENTATION, listenerOri);
+		// check for errors
 		// render the loaded model
 		glm::mat4 model;
 		model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
@@ -135,7 +245,13 @@ int main()
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
+	// cleanup context
+	alDeleteSources(1, &source);
+	alDeleteBuffers(1, &buffer);
+	Device = alcGetContextsDevice(Context);
+	alcMakeContextCurrent(NULL);
+	alcDestroyContext(Context);
+	alcCloseDevice(Device);
 	// glfw: terminate, clearing all previously allocated GLFW resources.
 	// ------------------------------------------------------------------
 	glfwTerminate();

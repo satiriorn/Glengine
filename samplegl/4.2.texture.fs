@@ -33,7 +33,7 @@ void main()
 	// get diffuse color
     vec3 color = texture(texture_diffuse1, TexCoords).rgb;
     // ambient
-    vec3 ambient = 0.1 * color;
+    vec3 ambient = 0.2 * color;
     // diffuse
     vec3 lightDir = normalize(TangentLightPos - TangentFragPos);
     float diff = max(dot(lightDir, normal), 0.0);
@@ -46,5 +46,5 @@ void main()
     vec3 specular = vec3(0.2) * spec * texture(texture_specular1, TexCoords).rgb;
 
     FragColor = vec4(ambient + diffuse + specular, 1.0);
-	//FragColor =vec4(texture(texture_specular1, TexCoords).rgb,1.0);
+	//FragColor =vec4(texture(texture_diffuse1, TexCoords).rgb,1.0);
 }
