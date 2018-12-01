@@ -1,26 +1,25 @@
-﻿#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <AL/alut.h>
-//#include <ft2build.h>
-//#include FT_FREETYPE_H 
-#define GLM_FORCE_AVX
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include "filesystem.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#include "shader_s.h"
-#include "camera.h"
-#include "model.h"
-
+﻿//#include <glad/glad.h>
+//#include <GLFW/glfw3.h>
+//#include <AL/alut.h>
+////#include <ft2build.h>
+////#include FT_FREETYPE_H 
+//#define GLM_FORCE_AVX
+//#include <glm/glm.hpp>
+//#include <glm/gtc/matrix_transform.hpp>
+//#include <glm/gtc/type_ptr.hpp>
+//#include "filesystem.h"
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "stb_image.h"
+//#include "shader_s.h"
+//#include "camera.h"
+//#include "model.h"
+#include "scene.h"
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-
 
 // settings
 const unsigned int SCR_WIDTH = 1366;
@@ -42,21 +41,6 @@ ALuint buffer;
 ALuint source;
 ALCenum error;
 
-static void list_audio_devices(const ALCchar *devices)
-{
-	const ALCchar *device = devices, *next = devices + 1;
-	size_t len = 0;
-
-	fprintf(stdout, "Devices list:\n");
-	fprintf(stdout, "----------\n");
-	while (device && *device != '\0' && next && *next != '\0') {
-		fprintf(stdout, "%s\n", device);
-		len = strlen(device);
-		device += (len + 1);
-		next += (len + 2);
-	}
-	fprintf(stdout, "----------\n");
-}
 void alErrorChk(const char * step) {
 	error = alGetError();
 	if (error != AL_NO_ERROR)
@@ -65,32 +49,23 @@ void alErrorChk(const char * step) {
 	}
 }
 
-using namespace std;
-using namespace glm;
-
 int main()
 {
-	// glfw: initialize and configure
-	// ------------------------------
-	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//list_audio_devices(alcGetString(NULL, ALC_DEVICE_SPECIFIER));
-	// glfw window creation
-	// --------------------
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+	Scene scene;
+	// Initialization
+	GLFWwindow* window = scene.initglfw(SCR_WIDTH, SCR_HEIGHT, "LearnGL");
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
-	// Initialization
+	glfwMakeContextCurrent(window);
 
 	Context = alcCreateContext(Device, NULL);
 	if (!alcMakeContextCurrent(Context))
 		cout << "context error" << alGetError() << endl;
+
 	Device = alcOpenDevice(NULL); // select the "preferred device"
 
 	if (Device) {
@@ -100,9 +75,6 @@ int main()
 	else {
 		cout << "OpenAL init error." << endl;
 	}
-	
-
-
 
 	alGenBuffers((ALuint)1, &buffer);
 	// check for errors
@@ -113,6 +85,7 @@ int main()
 	ALboolean loop = AL_FALSE;
 	ALbyte * filename = (ALbyte*)("jurassicpark1.wav");
 	//buffer = alutCreateBufferFromFile("jurassicpark1.wav");
+
 	alutLoadWAVFile(filename, &format, &data, &size, &freq, &loop);
 	alBufferData(buffer, format, data, size, freq);
 	ALfloat listenerOri[] = { camera.Position.b, camera.Position.g, camera.Position.p, camera.Position.r, camera.Position.s, camera.Position.t };
@@ -123,8 +96,6 @@ int main()
 	// check for errors
 	alListenerfv(AL_ORIENTATION, listenerOri);
 	// check for errors
-
-
 
 	alGenSources((ALuint)1, &source);
 	// check for errors
@@ -141,14 +112,12 @@ int main()
 	// check for errros
 
 	//alutLoadWAVFile(&filename, &format, &data, &size, &freq, &loop);
-	alErrorChk("LoadWavFile");
 	//alBufferData(buffer, format, data, size, freq);
 	//alErrorChk("bufferData");
 	// check for errors
 	alSourcei(source, AL_BUFFER, buffer);
-	alErrorChk("Sourcei");
 	// check for errors
-	glfwMakeContextCurrent(window);
+	
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
@@ -182,17 +151,16 @@ int main()
 
 	alSourcePlay(source);
 	// check for errors
-	error = alGetError();
-	alErrorChk("SourcePlay");
+
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
 		// --------------------
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		//float currentFrame = glfwGetTime();
+		//deltaTime = currentFrame - lastFrame;
+		//lastFrame = currentFrame;
 
 		// input
 		// -----
@@ -214,12 +182,11 @@ int main()
 		ALfloat Ori[] = { camera.Position.b, camera.Position.g, camera.Position.p, camera.Position.r, camera.Position.s, camera.Position.t };
 		for (unsigned short int i(0); i < 6; i++)
 			listenerOri[i] = Ori[i];
+
 		alListener3f(AL_POSITION, camera.Position.x, camera.Position.y, camera.Position.z);
-		// check for errors
 		alListener3f(AL_VELOCITY, 0, 0, 0);
-		// check for errors
 		alListenerfv(AL_ORIENTATION, listenerOri);
-		// check for errors
+
 		// render the loaded model
 		glm::mat4 model;
 		model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
@@ -230,15 +197,9 @@ int main()
 		ourShader.setVec3("lightPos", lightPos);
 		//ourShader.setVec3("lightPos", lightPos);
 
-		// light properties
-		ourShader.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
-		ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
-		ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-
 		// material properties
 		ourShader.setFloat("shininess", 32.0f);
 		ourModel.Draw(ourShader);
-
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
