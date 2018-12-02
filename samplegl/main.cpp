@@ -22,6 +22,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void clShowfps(GLFWwindow *window);
+void Sound(GLFWwindow *window,ALfloat listenerOri[]);
 
 // settings
 const unsigned int SCR_WIDTH = 1366;
@@ -90,7 +91,7 @@ int main()
 
 	alutLoadWAVFile(filename, &format, &data, &size, &freq, &loop);
 	alBufferData(buffer, format, data, size, freq);
-	ALfloat listenerOri[] = { camera.Position.b, camera.Position.g, camera.Position.p, camera.Position.r, camera.Position.s, camera.Position.t };
+	ALfloat listenerOri[] = { camera.Front.x,camera.Front.y,camera.Front.x, camera.Up.x,camera.Up.y,camera.Up.z};
 
 	alListener3f(AL_POSITION, 0, 0, 1.0f);
 	// check for errors
@@ -154,12 +155,16 @@ int main()
 	alSourcePlay(source);
 	// check for errors
 
+	// В отдельном потоке считываем клавиши
+	thread input = thread(processInput, window);
+	// Вывод FPS для дебага
+	thread fps = thread(clShowfps, window);
+
+	input.detach(); //отсоединение потока от основного
+	fps.detach(); //отсоединение потока от основного
+
 	// render loop
 	// -----------
-	thread input= thread(processInput, window);
-	thread fps = thread(clShowfps, window);
-	input.detach();
-	fps.detach();
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
@@ -181,17 +186,18 @@ int main()
 
 		// view/projection transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		//glm::mat4 projection = glm::ortho(0.f, 10.f, 0.f, 10.f, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		ourShader.setMat4("projection", projection);
 		ourShader.setMat4("view", view);
-		ALfloat Ori[] = { camera.Position.b, camera.Position.g, camera.Position.p, camera.Position.r, camera.Position.s, camera.Position.t };
+
+		ALfloat Ori[] = { camera.Front.x,camera.Front.y,camera.Front.z, camera.Up.x,camera.Up.y,camera.Up.z };//вот тут мы задаем кооржинаты слушателя
 		for (unsigned short int i(0); i < 6; i++)
 			listenerOri[i] = Ori[i];
 
 		alListener3f(AL_POSITION, camera.Position.x, camera.Position.y, camera.Position.z);
 		alListener3f(AL_VELOCITY, 0, 0, 0);
 		alListenerfv(AL_ORIENTATION, listenerOri);
-
 		// render the loaded model
 		glm::mat4 model;
 		model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
@@ -242,6 +248,18 @@ void processInput(GLFWwindow *window)
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			camera.ProcessKeyboard(RIGHT, deltaTime);
 		Sleep(deltaTime*500);
+	}
+}
+void Sound(GLFWwindow *window,ALfloat listenerOri[]) {
+	while (!glfwWindowShouldClose(window))
+	{
+		ALfloat Ori[] = { camera.Front.x,camera.Front.y,camera.Front.z, camera.Up.x,camera.Up.y,camera.Up.z };
+		for (unsigned short int i(0); i < 6; i++)
+			listenerOri[i] = Ori[i];
+
+		alListener3f(AL_POSITION, camera.Position.x, camera.Position.y, camera.Position.z);
+		alListener3f(AL_VELOCITY, 0, 0, 0);
+		alListenerfv(AL_ORIENTATION, listenerOri);
 	}
 }
 void clShowfps(GLFWwindow *window) {

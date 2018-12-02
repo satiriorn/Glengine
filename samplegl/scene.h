@@ -6,6 +6,11 @@
 #include <AL/alut.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H  
+#define GLM_FORCE_SSE3
+#define GLM_FORCE_SSSE3
+#define GLM_FORCE_SSE41
+#define GLM_FORCE_SSE42
+#define GLM_FORCE_AVX
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
