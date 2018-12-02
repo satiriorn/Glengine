@@ -13,6 +13,7 @@
 //#include "shader_s.h"
 //#include "camera.h"
 //#include "model.h"
+#include <thread>
 #include "scene.h"
 #include <iostream>
 
@@ -20,6 +21,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void clShowfps(GLFWwindow *window);
 
 // settings
 const unsigned int SCR_WIDTH = 1366;
@@ -154,18 +156,21 @@ int main()
 
 	// render loop
 	// -----------
+	thread input= thread(processInput, window);
+	thread fps = thread(clShowfps, window);
+	input.detach();
+	fps.detach();
 	while (!glfwWindowShouldClose(window))
 	{
 		// per-frame time logic
 		// --------------------
-		//float currentFrame = glfwGetTime();
-		//deltaTime = currentFrame - lastFrame;
-		//lastFrame = currentFrame;
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 
 		// input
 		// -----
-		processInput(window);
-
+		
 		// render
 		// ------
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -199,6 +204,7 @@ int main()
 
 		// material properties
 		ourShader.setFloat("shininess", 32.0f);
+		
 		ourModel.Draw(ourShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -223,17 +229,28 @@ int main()
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.ProcessKeyboard(FORWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.ProcessKeyboard(BACKWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.ProcessKeyboard(LEFT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.ProcessKeyboard(RIGHT, deltaTime);
+	while (!glfwWindowShouldClose(window))
+	{
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+			glfwSetWindowShouldClose(window, true);
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			camera.ProcessKeyboard(FORWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			camera.ProcessKeyboard(BACKWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			camera.ProcessKeyboard(LEFT, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			camera.ProcessKeyboard(RIGHT, deltaTime);
+		Sleep(deltaTime*500);
+	}
+}
+void clShowfps(GLFWwindow *window) {
+	while (!glfwWindowShouldClose(window))
+	{
+		system("cls");
+		cout <<"FPS: "<< 1 / deltaTime;
+		Sleep(500);
+	}
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
